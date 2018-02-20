@@ -10,7 +10,7 @@ const { default: Root } = require('./root');
 const { default: Scripts } = require('./scripts');
 
 module.exports = ({ theme, createClient, createStore, indexFile }) => {
-  const html = readFileSync(indexFie, 'utf-8');
+  const html = readFileSync(indexFile, 'utf-8');
   const [pre, post] = html.split(/<div id="root"><\/div>/i);
 
   return async (request, response, View) => {
