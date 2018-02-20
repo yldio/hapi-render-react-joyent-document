@@ -9,14 +9,10 @@ const { ServerStyleSheet } = require('styled-components');
 const { default: Root } = require('./root');
 const { default: Scripts } = require('./scripts');
 
-const html = readFileSync(
-  path.join(__dirname, '../../build/index.html'),
-  'utf-8'
-);
+module.exports = ({ theme, createClient, createStore, indexFile }) => {
+  const html = readFileSync(indexFie, 'utf-8');
+  const [pre, post] = html.split(/<div id="root"><\/div>/i);
 
-const [pre, post] = html.split(/<div id="root"><\/div>/i);
-
-module.exports = ({ theme, createClient, createStore }) => {
   return async (request, response, View) => {
     const { req, res } = request.raw;
 
