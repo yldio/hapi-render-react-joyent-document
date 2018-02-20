@@ -1,5 +1,4 @@
 const { readFileSync } = require('fs');
-const path = require('path');
 
 const React = require('react');
 const { renderToString, renderToNodeStream } = require('react-dom/server');
@@ -9,7 +8,10 @@ const { ServerStyleSheet } = require('styled-components');
 const { default: Root } = require('./root');
 const { default: Scripts } = require('./scripts');
 
-module.exports = ({ theme, createClient, createStore, indexFile }) => {
+module.exports = ({
+  indexFile,
+  getState
+}) => {
   const html = readFileSync(indexFile, 'utf-8');
   const [pre, post] = html.split(/<div id="root"><\/div>/i);
 
@@ -17,6 +19,8 @@ module.exports = ({ theme, createClient, createStore, indexFile }) => {
     const { req, res } = request.raw;
 
     res.write(pre);
+
+    const { theme, createClient, createStore } = getState(request, response);
 
     const location = req.url;
     const routerContext = {};
