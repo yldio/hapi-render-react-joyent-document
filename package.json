@@ -1,0 +1,46 @@
+{
+  "name": "hapi-render-react-joyent-document",
+  "version": "1.0.0",
+  "license": "MPL-2.0",
+  "repository": "github:yldio/hapi-render-react-joyent-document",
+  "main": "dist/umd/index.js",
+  "jsnext:main": "dist/es/index.js",
+  "module": "dist/es/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "lint": "eslint . --fix --ext .js --ext .md",
+    "fmt": "prettier --write --single-quote *.md src/*.js *.json",
+    "compile:es": "babel src --out-dir dist/es --copy-files",
+    "compile:umd": "UMD=1 babel src --out-dir dist/umd --copy-files",
+    "compile": "redrun -p compile:*",
+    "prepublish": "NODE_ENV=production npm run compile"
+  },
+  "devDependencies": {
+    "babel-cli": "^6.26.0",
+    "babel-eslint": "^8.2.2",
+    "babel-preset-joyent-portal": "^7.0.1",
+    "eslint": "^4.16.0",
+    "eslint-config-joyent-portal": "^3.3.1",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-config-react-app": "^2.1.0",
+    "eslint-config-xo-space": "^0.18.0",
+    "eslint-plugin-flowtype": "^2.45.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-jsx-a11y": "^6.0.3",
+    "eslint-plugin-markdown": "^1.0.0-beta.6",
+    "eslint-plugin-prettier": "^2.6.0",
+    "eslint-plugin-react": "^7.7.0",
+    "graphql": "^0.13.1",
+    "redrun": "^5.10.3"
+  },
+  "peerDependencies": {
+    "react": "^16.2.0",
+    "react-apollo": "^2.0.4",
+    "react-dom": "^16.2.0",
+    "react-redux": "^5.0.7",
+    "react-router": "^4.2.0",
+    "styled-components": "^3.1.6"
+  }
+}
