@@ -4,6 +4,7 @@ const React = require('react');
 const { renderToString, renderToNodeStream } = require('react-dom/server');
 const { getDataFromTree } = require('react-apollo');
 const { ServerStyleSheet } = require('styled-components');
+const Through = require('through2');
 
 const { default: Root } = require('./root');
 const { default: Scripts } = require('./scripts');
@@ -17,11 +18,7 @@ module.exports = ({ indexFile, getState }) => {
     res.end(`${prepost}${post}`);
   };
 
-  return async (request, response, View) => {
-    const { req, res } = request.raw;
-
-    res.write(pre);
-
+  const render = async ({ resStream, request, response, View }) => {
     let apolloClient;
     let routerContext;
     let reduxStore;
@@ -31,7 +28,7 @@ module.exports = ({ indexFile, getState }) => {
     try {
       const { theme, createClient, createStore } = getState(request, response);
 
-      const location = req.url;
+      const location = request.path;
       routerContext = {};
       apolloClient = createClient({ ssrMode: true });
       reduxStore = createStore();
@@ -54,24 +51,41 @@ module.exports = ({ indexFile, getState }) => {
       root = sheet.collectStyles(_root);
     } catch (err) {
       console.log(err);
-      end(res, { redirect: `http://${req.headers.host}/~server-error` });
-      return res;
+
+      return end(resStream, {
+        redirect: `http://${request.info.host}/~server-error`
+      });
     }
 
     const stream = sheet.interleaveWithNodeStream(renderToNodeStream(root));
 
     stream.on('error', err => console.error(err));
-    stream.pipe(res, { end: false });
+    stream.pipe(resStream, {
+      end: false
+    });
 
     stream.on('end', () =>
-      end(res, {
+      end(resStream, {
         apolloState: apolloClient.extract(),
         reduxState: reduxStore.getState(),
         redirect:
-          routerContext.url && `http://${req.headers.host}${routerContext.url}`
+          routerContext.url && `http://${request.info.host}${routerContext.url}`
       })
     );
+  };
 
-    return res;
+  return async (request, response, View) => {
+    const resStream = Through();
+
+    resStream.write(pre);
+
+    setImmediate(render, {
+      resStream,
+      request,
+      response,
+      View
+    });
+
+    return resStream;
   };
 };

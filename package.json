@@ -17,6 +17,9 @@
     "compile": "redrun -p compile:*",
     "prepublish": "NODE_ENV=production npm run compile"
   },
+  "dependencies": {
+    "through2": "^2.0.3"
+  },
   "devDependencies": {
     "babel-cli": "^6.26.0",
     "babel-eslint": "^8.2.2",
