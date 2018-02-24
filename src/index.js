@@ -14,11 +14,23 @@ module.exports = ({ indexFile, getState }) => {
   const [pre, post] = html.split(/<div id="root"><\/div>/i);
 
   const end = (res, props) => {
-    const prepost = renderToString(React.createElement(Scripts, props));
-    res.end(`${prepost}${post}`);
+    try {
+      const prepost = renderToString(React.createElement(Scripts, props));
+      res.end(`${prepost}${post}`);
+    } catch (err) {
+      console.error(err);
+
+      try {
+        res.end();
+      } catch (err) {
+        console.error(err);
+      }
+    }
   };
 
   const render = async ({ resStream, request, response, View }) => {
+    const location = request.path;
+
     let apolloClient;
     let routerContext;
     let reduxStore;
@@ -28,7 +40,6 @@ module.exports = ({ indexFile, getState }) => {
     try {
       const { theme, createClient, createStore } = getState(request, response);
 
-      const location = request.path;
       routerContext = {};
       apolloClient = createClient({ ssrMode: true });
       reduxStore = createStore();
@@ -50,11 +61,14 @@ module.exports = ({ indexFile, getState }) => {
       await getDataFromTree(_root);
       root = sheet.collectStyles(_root);
     } catch (err) {
-      console.log(err);
+      console.error(err);
 
-      return end(resStream, {
-        redirect: `http://${request.info.host}/~server-error`
-      });
+      const redirect =
+        !location.match(/^\/\~server-error/) &&
+        `http://${request.info.host}/~server-error`;
+
+      resStream.write('<div id="root"></div>');
+      return end(resStream, { redirect });
     }
 
     const stream = sheet.interleaveWithNodeStream(renderToNodeStream(root));
