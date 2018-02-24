@@ -12,6 +12,7 @@ const { default: Scripts } = require('./scripts');
 module.exports = ({ indexFile, getState }) => {
   const html = readFileSync(indexFile, 'utf-8');
   const [pre, post] = html.split(/<div id="root"><\/div>/i);
+  const hasNoscript = (/<noscript>/).test(html);
 
   const end = (res, props) => {
     try {
@@ -67,7 +68,12 @@ module.exports = ({ indexFile, getState }) => {
         !location.match(/^\/\~server-error/) &&
         `http://${request.info.host}/~server-error`;
 
+      if (!hasNoscript) {
+        resStream.write('<noscript>An error occurred while loading your page.</noscript>');
+      }
+
       resStream.write('<div id="root"></div>');
+
       return end(resStream, { redirect });
     }
 
