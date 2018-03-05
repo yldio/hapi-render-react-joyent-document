@@ -9,10 +9,19 @@ const Through = require('through2');
 const { default: Root } = require('./root');
 const { default: Scripts } = require('./scripts');
 
-module.exports = ({ indexFile, getState }) => {
+module.exports = ({ namespace = '', assets = {}, indexFile, getState }) => {
   const html = readFileSync(indexFile, 'utf-8');
-  const [pre, post] = html.split(/<div id="root"><\/div>/i);
-  const hasNoscript = (/<noscript>/).test(html);
+  const [_pre, _post] = html.split(/<div id="root"><\/div>/i);
+  const hasNoscript = /<noscript>/.test(html);
+
+  const pre = Object.values(assets).reduce(
+    (pre, val) => pre.replace(val, `${namespace}${val}`),
+    _pre
+  );
+  const post = Object.values(assets).reduce(
+    (post, val) => post.replace(val, `${namespace}${val}`),
+    _post
+  );
 
   const end = (res, props) => {
     try {
@@ -66,10 +75,12 @@ module.exports = ({ indexFile, getState }) => {
 
       const redirect =
         !location.match(/^\/\~server-error/) &&
-        `http://${request.info.host}/~server-error`;
+        `http://${request.info.host}${namespace}~server-error`;
 
       if (!hasNoscript) {
-        resStream.write('<noscript>An error occurred while loading your page.</noscript>');
+        resStream.write(
+          '<noscript>An error occurred while loading your page.</noscript>'
+        );
       }
 
       resStream.write('<div id="root"></div>');
