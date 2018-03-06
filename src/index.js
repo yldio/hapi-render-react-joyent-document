@@ -95,14 +95,14 @@ module.exports = ({ namespace = '', assets = {}, indexFile, getState }) => {
       end: false
     });
 
-    stream.on('end', () =>
-      end(resStream, {
+    stream.on('end', () => {
+      return end(resStream, {
         apolloState: apolloClient.extract(),
         reduxState: reduxStore.getState(),
         redirect:
-          routerContext.url && `http://${request.info.host}${routerContext.url}`
+          routerContext.url && `http://${request.info.host}${routerContext.url}${request.url.search}`
       })
-    );
+    });
   };
 
   return async (request, response, View) => {
