@@ -100,7 +100,7 @@ module.exports = ({ namespace = '', assets = {}, indexFile, getState }) => {
         apolloState: apolloClient.extract(),
         reduxState: reduxStore.getState(),
         redirect:
-          routerContext.url && `http://${request.info.host}${routerContext.url}${request.url.search}`
+          routerContext.url && `http://${request.info.host}${routerContext.url}${request.url.search || ''}`
       })
     });
   };
