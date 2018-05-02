@@ -1,113 +1,110 @@
-const { readFileSync } = require('fs');
-
 const React = require('react');
-const { renderToString, renderToNodeStream } = require('react-dom/server');
+const { renderToNodeStream } = require('react-dom/server');
 const { getDataFromTree } = require('react-apollo');
 const { ServerStyleSheet } = require('styled-components');
-const Through = require('through2');
+const Duplexify = require('duplexify');
+const Str = require('string-to-stream');
+const Pumpify = require('pumpify');
 
 const { default: Root } = require('./root');
 const { default: Scripts } = require('./scripts');
 
-module.exports = ({ namespace = '', indexFile, getState }) => {
-  const html = readFileSync(indexFile, 'utf-8');
-  const [pre, post] = html.split(/<div id="root"><\/div>/i);
-  const hasNoscript = /<noscript>/.test(html);
+module.exports = ({ namespace = '', Html, getState }) => async (
+  request,
+  response,
+  View
+) => {
+  const location = request.path;
 
-  const end = (res, props) => {
-    try {
-      const prepost = renderToString(React.createElement(Scripts, props));
-      res.end(`${prepost}${post}`);
-    } catch (err) {
-      console.error(err);
+  let helmetContext;
+  let apolloClient;
+  let routerContext;
+  let reduxStore;
+  let sheet;
+  let root;
+  let post;
 
-      try {
-        res.end();
-      } catch (err) {
-        console.error(err);
-      }
-    }
-  };
+  try {
+    const { theme, createClient, createStore } = getState(request, response);
 
-  const render = async ({ resStream, request, response, View }) => {
-    const location = request.path;
+    routerContext = {};
+    helmetContext = {};
+    apolloClient = createClient({ ssrMode: true });
+    reduxStore = createStore();
+    sheet = new ServerStyleSheet();
 
-    let apolloClient;
-    let routerContext;
-    let reduxStore;
-    let sheet;
-    let root;
+    const _root = React.createElement(
+      Root,
+      {
+        location,
+        helmetContext,
+        routerContext,
+        reduxStore,
+        apolloClient,
+        sheet: sheet.instance,
+        theme
+      },
+      React.createElement(View)
+    );
 
-    try {
-      const { theme, createClient, createStore } = getState(request, response);
+    await getDataFromTree(_root);
+    root = sheet.collectStyles(_root);
 
-      routerContext = {};
-      apolloClient = createClient({ ssrMode: true });
-      reduxStore = createStore();
-      sheet = new ServerStyleSheet();
-
-      const _root = React.createElement(
-        Root,
-        {
-          location,
-          routerContext,
-          reduxStore,
-          apolloClient,
-          sheet: sheet.instance,
-          theme
-        },
-        React.createElement(View)
-      );
-
-      await getDataFromTree(_root);
-      root = sheet.collectStyles(_root);
-    } catch (err) {
-      console.error(err);
-
-      const redirect =
-        !location.match(/^\/\~server-error/) &&
-        `http://${request.info.host}${namespace}~server-error`;
-
-      if (!hasNoscript) {
-        resStream.write(
-          '<noscript>An error occurred while loading your page.</noscript>'
-        );
-      }
-
-      resStream.write('<div id="root"></div>');
-
-      return end(resStream, { redirect });
-    }
-
-    const stream = sheet.interleaveWithNodeStream(renderToNodeStream(root));
-
-    stream.on('error', err => console.error(err));
-    stream.pipe(resStream, {
-      end: false
+    post = React.createElement(Scripts, {
+      apolloState: apolloClient.extract(),
+      reduxState: reduxStore.getState(),
+      redirect:
+        routerContext.url &&
+        `http://${request.info.host}${routerContext.url}${request.url.search ||
+          ''}`
     });
+  } catch (err) {
+    console.error(err);
 
-    stream.on('end', () => {
-      return end(resStream, {
-        apolloState: apolloClient.extract(),
-        reduxState: reduxStore.getState(),
-        redirect:
-          routerContext.url && `http://${request.info.host}${routerContext.url}${request.url.search || ''}`
-      })
+    post = React.createElement(Scripts, {
+      redirect:
+        !location.match(/^\/~server-error/) &&
+        `http://${request.info.host}${namespace}~server-error`
     });
-  };
+  }
 
-  return async (request, response, View) => {
-    const resStream = Through();
+  const { helmet = {} } = helmetContext;
 
-    resStream.write(pre);
+  const {
+    bodyAttributes,
+    htmlAttributes,
+    link,
+    meta,
+    noscript,
+    script,
+    style,
+    title
+  } = helmet;
 
-    setImmediate(render, {
-      resStream,
-      request,
-      response,
-      View
-    });
+  const _html = Html.default || Html;
 
-    return resStream;
-  };
+  const html = renderToNodeStream(
+    React.createElement(
+      _html,
+      {
+        htmlAttrs: htmlAttributes && htmlAttributes.toComponent(),
+        bodyAttrs: bodyAttributes && bodyAttributes.toComponent(),
+        head: [
+          ...meta.toComponent(),
+          ...link.toComponent(),
+          ...title.toComponent(),
+          sheet.getStyleElement()
+        ]
+      },
+      [
+        root,
+        post,
+        ...noscript.toComponent(),
+        ...script.toComponent(),
+        ...style.toComponent()
+      ].filter(Boolean)
+    )
+  );
+
+  return Pumpify(Duplexify(Str('<!DOCTYPE html>')), html);
 };

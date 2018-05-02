@@ -1,6 +1,6 @@
 import React, { Fragment } from 'react';
 
-export default ({ apolloState, reduxState, redirect }) => (
+export default ({ apolloState, reduxState, redirect, children }) => (
   <Fragment>
     {redirect ? (
       <meta httpEquiv="refresh" content={`0; url=${redirect}`} />
@@ -26,5 +26,7 @@ export default ({ apolloState, reduxState, redirect }) => (
         }}
       />
     ) : null}
+
+    {children}
   </Fragment>
 );
