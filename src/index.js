@@ -101,7 +101,11 @@ module.exports = ({ namespace = '', Html, getState }) => async (
         post,
         ...noscript.toComponent(),
         ...script.toComponent(),
-        ...style.toComponent()
+        ...style.toComponent(),
+        React.createElement('script', {
+          type: 'text/javascript',
+          src: `/${namespace}static/main.js`
+        })
       ].filter(Boolean)
     )
   );
