@@ -29,7 +29,7 @@ module.exports = ({ namespace = '', Html, getState }) => async (
 
     routerContext = {};
     helmetContext = {};
-    apolloClient = createClient({ ssrMode: true });
+    apolloClient = createClient({ ssrMode: true }, request);
     reduxStore = createStore();
     sheet = new ServerStyleSheet();
 
